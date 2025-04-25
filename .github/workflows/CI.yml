@@ -12,7 +12,7 @@ jobs:
       run: Invoke-WebRequest https://bin.equinox.io/c/4VmDzA7iaHb/ngrok-stable-windows-amd64.zip -OutFile ngrok.zip
 
     - name: Extract ngrok
-      run: Expand-Archive ngrok.zip
+      run: Expand-Archive ngrok.zip -Force
 
     - name: Auth ngrok
       run: .\ngrok\ngrok.exe authtoken $Env:NGROK_AUTH_TOKEN
@@ -30,6 +30,17 @@ jobs:
 
     - name: Set Password for Runner Admin
       run: Set-LocalUser -Name "runneradmin" -Password (ConvertTo-SecureString -AsPlainText "P@ssw0rd!" -Force)
+
+    - name: Update ngrok and Create Tunnel for RDP via ngrok
+      run: |
+        Invoke-WebRequest https://bin.equinox.io/c/4VmDzA7iaHb/ngrok-stable-windows-amd64.zip -OutFile ngrok.zip
+        Expand-Archive ngrok.zip -Force
+        .\ngrok\ngrok.exe authtoken $Env:NGROK_AUTH_TOKEN
+        .\ngrok\ngrok.exe tcp 3389
+        Write-Host "Username = runneradmin"
+        Write-Host "Password = P@ssw0rd!"
+        Start-Process -FilePath "cmd.exe" -ArgumentList "tasklist | find /i 'ngrok.exe' >Nul"
+        curl -s localhost:4040/api/tunnels | jq -r .tunnels[0].public_url || echo "Failed to retrieve NGROK authtoken - check your authtoken"
 
     - name: Create Tunnel for RDP via ngrok
       run: |
